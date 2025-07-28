@@ -12,14 +12,16 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class MerchantServiceImpl implements MerchantService {
+
     private final MerchantRepository merchantRepository;
     private final UserRepository userRepository;
 
     @Transactional
     @Override
-    public MerchantResponseDTO registerMerchant(Long userId, MerchantCreateDTO dto) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+    public MerchantResponseDTO registerMerchant(String email, MerchantCreateDTO dto) {
+        User user = userRepository.findByEmailIgnoreCase(email) // ✅ safely ignores case
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
+
         Merchant merchant = Merchant.builder()
                 .user(user)
                 .storeName(dto.getStoreName())
@@ -27,6 +29,7 @@ public class MerchantServiceImpl implements MerchantService {
                 .address(dto.getAddress())
                 .etaBufferMins(dto.getEtaBufferMins())
                 .build();
+
         merchantRepository.save(merchant);
         return toResponseDTO(merchant);
     }
@@ -43,9 +46,11 @@ public class MerchantServiceImpl implements MerchantService {
     public MerchantResponseDTO updateMerchant(Long merchantId, MerchantUpdateDTO dto) {
         Merchant merchant = merchantRepository.findById(merchantId)
                 .orElseThrow(() -> new ResourceNotFoundException("Merchant not found"));
+
         merchant.setStoreName(dto.getStoreName());
         merchant.setAddress(dto.getAddress());
         merchant.setEtaBufferMins(dto.getEtaBufferMins());
+
         merchantRepository.save(merchant);
         return toResponseDTO(merchant);
     }

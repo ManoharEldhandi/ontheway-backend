@@ -16,36 +16,50 @@ public class MerchantController {
 
     private final MerchantService merchantService;
 
+    /**
+     * Register a merchant for the authenticated user.
+     */
     @PreAuthorize("hasRole('MERCHANT')")
     @PostMapping
-    public ResponseEntity<MerchantResponseDTO> registerMerchant(Authentication auth,
-                                                                @Valid @RequestBody MerchantCreateDTO dto) {
-        Long userId = extractUserId(auth);
-        return ResponseEntity.status(HttpStatus.CREATED).body(merchantService.registerMerchant(userId, dto));
+    public ResponseEntity<MerchantResponseDTO> registerMerchant(
+            Authentication auth,
+            @Valid @RequestBody MerchantCreateDTO dto) {
+
+        String email = auth.getName(); // JWT subject (email)
+        MerchantResponseDTO response = merchantService.registerMerchant(email, dto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    /**
+     * Get merchant by ID (accessible to MERCHANT and ADMIN).
+     */
     @PreAuthorize("hasRole('MERCHANT') or hasRole('ADMIN')")
     @GetMapping("/{id}")
-    public ResponseEntity<MerchantResponseDTO> getMerchant(@PathVariable Long id) {
+    public ResponseEntity<MerchantResponseDTO> getMerchant(
+            @PathVariable("id") Long id) {
+
         return ResponseEntity.ok(merchantService.getMerchantById(id));
     }
 
+    /**
+     * Update a merchant by ID (MERCHANT only).
+     */
     @PreAuthorize("hasRole('MERCHANT')")
     @PutMapping("/{id}")
-    public ResponseEntity<MerchantResponseDTO> updateMerchant(@PathVariable Long id,
-                                                              @Valid @RequestBody MerchantUpdateDTO dto) {
+    public ResponseEntity<MerchantResponseDTO> updateMerchant(
+            @PathVariable("id") Long id,
+            @Valid @RequestBody MerchantUpdateDTO dto) {
+
         return ResponseEntity.ok(merchantService.updateMerchant(id, dto));
     }
 
+    /**
+     * Delete a merchant by ID (ADMIN only).
+     */
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteMerchant(@PathVariable Long id) {
+    public ResponseEntity<?> deleteMerchant(@PathVariable("id") Long id) {
         merchantService.deleteMerchant(id);
         return ResponseEntity.noContent().build();
-    }
-
-    // Utility to extract userId from Authentication principal. Adjust to your UserDetails implementation.
-    private Long extractUserId(Authentication authentication) {
-        return Long.parseLong(authentication.getName());
     }
 }

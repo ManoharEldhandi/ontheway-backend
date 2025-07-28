@@ -56,7 +56,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserResponseDTO getUserByEmail(String email) {
-        return userRepository.findByEmail(email)
+        return userRepository.findByEmailIgnoreCase(email)
                 .map(this::toResponseDTO)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
     }

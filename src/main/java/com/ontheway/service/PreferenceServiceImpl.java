@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class PreferenceServiceImpl implements PreferenceService {
+
     private final PreferenceRepository preferenceRepository;
     private final UserRepository userRepository;
 
@@ -20,6 +21,23 @@ public class PreferenceServiceImpl implements PreferenceService {
         return preferenceRepository.findByUserUserId(userId)
                 .map(this::toResponseDTO)
                 .orElseThrow(() -> new ResourceNotFoundException("Preference not found"));
+    }
+
+    @Override
+    public PreferenceResponseDTO getOrCreatePreference(Long userId) {
+        Preference pref = preferenceRepository.findByUserUserId(userId)
+                .orElseGet(() -> {
+                    User user = userRepository.findById(userId)
+                            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+                    Preference newPref = Preference.builder()
+                            .user(user)
+                            .vegNonVeg(null)
+                            .favoriteCuisine(null)
+                            .build();
+                    return preferenceRepository.save(newPref);
+                });
+
+        return toResponseDTO(pref);
     }
 
     @Transactional
@@ -31,6 +49,7 @@ public class PreferenceServiceImpl implements PreferenceService {
                             .orElseThrow(() -> new ResourceNotFoundException("User not found"));
                     return Preference.builder().user(user).build();
                 });
+
         pref.setVegNonVeg(dto.getVegNonVeg());
         pref.setFavoriteCuisine(dto.getFavoriteCuisine());
         preferenceRepository.save(pref);

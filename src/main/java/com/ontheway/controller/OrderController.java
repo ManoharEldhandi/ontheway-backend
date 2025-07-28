@@ -1,6 +1,9 @@
 package com.ontheway.controller;
 
 import com.ontheway.dto.*;
+import com.ontheway.model.Merchant;
+import com.ontheway.repository.MerchantRepository;
+import com.ontheway.repository.UserRepository;
 import com.ontheway.service.OrderService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +20,8 @@ import java.util.List;
 public class OrderController {
 
     private final OrderService orderService;
+    private final UserRepository userRepository;
+    private final MerchantRepository merchantRepository;
 
     @PreAuthorize("hasRole('USER')")
     @PostMapping
@@ -28,7 +33,7 @@ public class OrderController {
 
     @PreAuthorize("hasAnyRole('USER', 'MERCHANT', 'ADMIN')")
     @GetMapping("/{orderId}")
-    public ResponseEntity<OrderResponseDTO> getOrder(@PathVariable Long orderId) {
+    public ResponseEntity<OrderResponseDTO> getOrder(@PathVariable("orderId") Long orderId) {
         return ResponseEntity.ok(orderService.getOrderById(orderId));
     }
 
@@ -42,26 +47,29 @@ public class OrderController {
     @PreAuthorize("hasRole('MERCHANT')")
     @GetMapping("/merchant")
     public ResponseEntity<List<OrderResponseDTO>> getOrdersForMerchant(Authentication auth) {
-        Long merchantId = extractMerchantId(auth); // Implement extraction method based on your security context
+        Long merchantId = extractMerchantId(auth);
         return ResponseEntity.ok(orderService.getOrdersByMerchant(merchantId));
     }
 
     @PreAuthorize("hasRole('MERCHANT')")
     @PutMapping("/{orderId}/status")
-    public ResponseEntity<OrderResponseDTO> updateOrderStatus(@PathVariable Long orderId,
-                                                              @RequestParam String status) {
+    public ResponseEntity<OrderResponseDTO> updateOrderStatus(
+            @PathVariable("orderId") Long orderId,
+            @RequestParam("status") String status) {
         return ResponseEntity.ok(orderService.updateOrderStatus(orderId, status));
     }
 
     private Long extractUserId(Authentication authentication) {
-        // Implement based on your UserDetails principal in Authentication object
-        return Long.parseLong(authentication.getName());
+        String email = authentication.getName();
+        return userRepository.findByEmailIgnoreCase(email)
+                .orElseThrow(() -> new RuntimeException("User not found with email: " + email))
+                .getUserId();
     }
 
     private Long extractMerchantId(Authentication authentication) {
-        // Implementation depends on how you store merchantId in UserDetails or SecurityContext
-        // For example, you can query merchantRepository with userId
-        // Here, you need to inject that logic or service, omitted for brevity
-        throw new UnsupportedOperationException("Please implement merchantId extraction logic");
+        Long userId = extractUserId(authentication);
+        return merchantRepository.findByUser_UserId(userId)
+                .orElseThrow(() -> new RuntimeException("Merchant not found for user"))
+                .getMerchantId();
     }
 }

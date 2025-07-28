@@ -15,21 +15,32 @@ public class PaymentController {
 
     private final PaymentService paymentService;
 
+    /**
+     * Create a new payment for the specified order.
+     */
     @PreAuthorize("hasRole('USER')")
     @PostMapping
     public ResponseEntity<PaymentResponseDTO> createPayment(@Valid @RequestBody PaymentCreateDTO dto) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(paymentService.createPayment(dto));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(paymentService.createPayment(dto));
     }
 
+    /**
+     * Get payment details for a given order ID.
+     */
     @PreAuthorize("hasAnyRole('USER', 'MERCHANT', 'ADMIN')")
     @GetMapping("/order/{orderId}")
-    public ResponseEntity<PaymentResponseDTO> getPaymentByOrder(@PathVariable Long orderId) {
+    public ResponseEntity<PaymentResponseDTO> getPaymentByOrder(@PathVariable("orderId") Long orderId) {
         return ResponseEntity.ok(paymentService.getPaymentByOrderId(orderId));
     }
 
+    /**
+     * Update payment status (e.g. SUCCESS, FAILED, PENDING).
+     */
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{paymentId}/status")
-    public ResponseEntity<?> updatePaymentStatus(@PathVariable Long paymentId, @RequestParam String status) {
+    public ResponseEntity<?> updatePaymentStatus(@PathVariable("paymentId") Long paymentId,
+                                                 @RequestParam("status") String status) {
         paymentService.updatePaymentStatus(paymentId, status);
         return ResponseEntity.noContent().build();
     }

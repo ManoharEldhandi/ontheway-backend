@@ -1,6 +1,8 @@
 package com.ontheway.controller;
 
 import com.ontheway.dto.*;
+import com.ontheway.model.User;
+import com.ontheway.repository.UserRepository;
 import com.ontheway.service.PreferenceService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -15,12 +17,13 @@ import org.springframework.web.bind.annotation.*;
 public class PreferenceController {
 
     private final PreferenceService preferenceService;
+    private final UserRepository userRepository;
 
     @PreAuthorize("hasRole('USER')")
     @GetMapping
     public ResponseEntity<PreferenceResponseDTO> getPreference(Authentication auth) {
         Long userId = extractUserId(auth);
-        return ResponseEntity.ok(preferenceService.getPreferenceByUserId(userId));
+        return ResponseEntity.ok(preferenceService.getOrCreatePreference(userId));
     }
 
     @PreAuthorize("hasRole('USER')")
@@ -32,6 +35,9 @@ public class PreferenceController {
     }
 
     private Long extractUserId(Authentication authentication) {
-        return Long.parseLong(authentication.getName());
+        String email = authentication.getName(); // JWT subject = email
+        User user = userRepository.findByEmailIgnoreCase(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        return user.getUserId();
     }
 }
